@@ -1,0 +1,15 @@
+{
+  "name": "check-in-sierra-madre",
+  "version": "1.0.0",
+  "description": "Microservicio de Check-in para Sierra Madre Resort & Casino",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,6 @@
+node_modules/
+.env
+local.db
+_scratch/
+coverage/
+.DS_Store
