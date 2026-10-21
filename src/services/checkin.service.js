@@ -3,12 +3,36 @@ import { randomUUID } from 'crypto';
 import QRCode from 'qrcode';
 
 export const initiateCheckIn = async (data) => {
-  const { groupCode, passengers } = data;
+  const { groupCode } = data;
+
+  // 1. Buscar la reserva (simulando que viene del equipo de Reservaciones)
+  const groupResult = await db.execute({
+    sql: 'SELECT id FROM check_in_groups WHERE group_code = ?',
+    args: [groupCode]
+  });
+
+  if (groupResult.rows.length === 0) {
+    const error = new Error('Reservation not found');
+    error.code = 'ERR_RESERVATION_NOT_FOUND';
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const groupId = groupResult.rows[0].id;
+
+  // 2. Buscar a los pasajeros de ese grupo
+  const passengersResult = await db.execute({
+    sql: 'SELECT * FROM passengers WHERE group_id = ?',
+    args: [groupId]
+  });
+
+  const passengers = passengersResult.rows;
+
+  // 3. Validar regla de edad
   let hasAdult = false;
   let hasMinor = false;
-
   for (const pax of passengers) {
-    const age = new Date().getFullYear() - new Date(pax.birthDate).getFullYear();
+    const age = new Date().getFullYear() - new Date(pax.birth_date).getFullYear();
     if (age >= 18) hasAdult = true;
     if (age < 18) hasMinor = true;
   }
@@ -20,28 +44,28 @@ export const initiateCheckIn = async (data) => {
     throw error;
   }
 
-  const groupId = randomUUID();
-  const tx = await db.transaction();
+  // 4. Crear los check_ins para los pasajeros (si no existen)
   const checkInIds = [];
+  const tx = await db.transaction();
 
   try {
-    await tx.execute({ sql: 'INSERT INTO check_in_groups (id, group_code) VALUES (?, ?)', args: [groupId, groupCode] });
-    
     for (const pax of passengers) {
-      const paxId = randomUUID();
-      const checkInId = randomUUID();
+      const existing = await tx.execute({
+        sql: 'SELECT id FROM check_ins WHERE passenger_id = ?',
+        args: [pax.id]
+      });
+
+      let checkInId;
+      if (existing.rows.length > 0) {
+        checkInId = existing.rows[0].id;
+      } else {
+        checkInId = randomUUID();
+        await tx.execute({
+          sql: `INSERT INTO check_ins (id, passenger_id, status) VALUES (?, ?, 'PENDING')`,
+          args: [checkInId, pax.id]
+        });
+      }
       checkInIds.push(checkInId);
-
-      await tx.execute({
-        sql: `INSERT INTO passengers (id, group_id, document_type, document_number, first_name, last_name, birth_date, is_vip) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [paxId, groupId, pax.documentType, pax.documentNumber, pax.firstName, pax.lastName, pax.birthDate, pax.isVip ? 1 : 0]
-      });
-
-      await tx.execute({
-        sql: `INSERT INTO check_ins (id, passenger_id, status) VALUES (?, ?, 'PENDING')`,
-        args: [checkInId, paxId]
-      });
     }
     await tx.commit();
     return { groupId, checkInIds };
@@ -101,6 +125,11 @@ export const assignCabin = async (data) => {
   }
 };
 
+export const getCabins = async () => {
+  const result = await db.execute('SELECT id, cabin_number, deck, capacity, occupied FROM cabins');
+  return result.rows;
+};
+
 export const generateQR = async (checkInId) => {
   const checkInResult = await db.execute({
     sql: 'SELECT status, qr_payload FROM check_ins WHERE id = ?',
@@ -151,13 +180,11 @@ export const processCheckout = async (checkInId, documentNumber) => {
 
   const cabinId = result.rows[0].cabin_id;
 
-  // 1. Consultar al Mock de Cabina
   const cabinResponse = await fetch(`http://localhost:3000/api/mock/cabin/checkout-report/${cabinId}`);
   const cabinReport = await cabinResponse.json();
 
   let chargeMessage = 'Check-out successful. No extra charges.';
 
-  // 2. Si hay cargos, llamar al Banco
   if (cabinReport.hasCharges && cabinReport.amount > 0) {
     const bankResponse = await fetch('http://localhost:3000/api/mock/bank/charge', {
       method: 'POST',
@@ -182,15 +209,10 @@ export const processCheckout = async (checkInId, documentNumber) => {
     chargeMessage = `Check-out successful. Extra charge of $${cabinReport.amount} processed for: ${cabinReport.reason}`;
   }
 
-  // 3. Actualizar estado final
   await db.execute({
     sql: "UPDATE check_ins SET status = 'COMPLETED' WHERE id = ?",
     args: [checkInId]
   });
 
   return { message: chargeMessage };
-};
-export const getCabins = async () => {
-  const result = await db.execute('SELECT id, cabin_number, deck, capacity, occupied FROM cabins');
-  return result.rows;
 };
