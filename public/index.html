@@ -51,11 +51,26 @@
         <div class="flex-1 overflow-y-auto p-6">
             
             <!-- Tab: Check-in -->
-            <section id="tab-checkin" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <p>Aquí irá el formulario del Wizard de Check-in (Siguiente paso).</p>
-                </div>
-            </section>
+            <!-- Tab: Check-in -->
+<section id="tab-checkin" class="tab-content">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow max-w-2xl">
+        <form id="checkinForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Código de Reserva</label>
+                <input type="text" id="groupCode" required class="w-full border p-2 rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Ej. FAM-999">
+            </div>
+            
+            <h3 class="font-semibold mb-2">Pasajeros</h3>
+            <div id="passengersContainer" class="space-y-3 mb-4"></div>
+            
+            <button type="button" id="addPassengerBtn" class="text-sm text-blue-600 dark:text-blue-400 mb-6 hover:underline font-medium">+ Agregar otro pasajero</button>
+            
+            <button type="submit" class="w-full bg-brand text-white p-2 rounded hover:bg-blue-800 transition font-bold">Iniciar Check-in</button>
+        </form>
+        
+        <div id="messageContainer" class="mt-4 hidden p-4 rounded border"></div>
+    </div>
+</section>
 
             <!-- Tab: Cabins -->
             <section id="tab-cabins" class="tab-content hidden">
