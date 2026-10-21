@@ -216,3 +216,33 @@ export const processCheckout = async (checkInId, documentNumber) => {
 
   return { message: chargeMessage };
 };
+export const registerLuggage = async (data) => {
+  const { checkInId, bagCount, totalWeightKg, isVip } = data;
+
+  // Regla de Negocio: 1 maleta y 20kg gratis por pax. VIP sin límite.
+  let extraFee = 0;
+  
+  if (!isVip) {
+    // Asumimos 1 pasajero por check-in para esta validación
+    const extraBags = Math.max(0, bagCount - 1);
+    const extraWeight = Math.max(0, totalWeightKg - 20);
+    
+    extraFee = (extraBags * 10) + (extraWeight * 10); 
+  }
+
+  if (extraFee > 0) {
+    const error = new Error('Luggage limit exceeded');
+    error.code = 'ERR_LUGGAGE_LIMIT';
+    error.statusCode = 422;
+    throw error;
+  }
+
+  // Guardar en DB
+  await db.execute({
+    sql: `INSERT INTO luggage (id, check_in_id, bag_count, total_weight_kg, extra_fee_cents) 
+          VALUES (?, ?, ?, ?, ?)`,
+    args: [randomUUID(), checkInId, bagCount, totalWeightKg, extraFee * 100]
+  });
+
+  return { message: 'Luggage registered successfully', extraFee };
+};
