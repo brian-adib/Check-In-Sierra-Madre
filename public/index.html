@@ -293,7 +293,8 @@ function cargosEquipaje(r,m) {
 const TABS = () => [
   ["checkin", "Nuevo Check-in", null],
   ["cola", "Cola", S.cola.filter(c=>c.estado==="pendiente").length],
-  ["hist", "Completados", S.hist.length]
+  ["hist", "Completados", S.hist.length],
+  ["checkout", "Check-out", null] // <-- Nueva pestaña
 ];
 
 function renderTabs() {
@@ -313,10 +314,13 @@ function go(t) {
   tab = t; 
   renderTabs();
   $("#title").textContent = {
-    checkin: "Módulo Check-in", cola: "Cola de espera", hist: "Check-ins completados"
+    checkin: "Módulo Check-in", 
+    cola: "Cola de espera", 
+    hist: "Check-ins completados",
+    checkout: "Módulo Check-out" // <-- Nuevo título
   }[t];
   $("#view").innerHTML = "";
-  ({checkin:vCheckin, cola:vCola, hist:vHist})[t]();
+  ({checkin:vCheckin, cola:vCola, hist:vHist, checkout:vCheckout})[t](); // <-- Mapeo a vCheckout
 }
 
 /* ================= VISTAS ================= */
@@ -602,6 +606,72 @@ function vHist() {
       </table></div>
     ` : '<p class="mut mt">Aún no hay check-ins completados.</p>'}
   </div>`;
+}
+
+/* ================= NUEVO CHECK-OUT ================= */
+function vCheckout() {
+  $("#view").innerHTML = `
+  <div class="card">
+    <div class="row sp" style="margin-bottom:16px;">
+      <div>
+        <h3>Check-out de Pasajeros</h3>
+        <p class="mut">Cierra el viaje y cobra cargos extra (minibar, daños) reportados por Cabinas.</p>
+      </div>
+    </div>
+    
+    <form id="form-checkout" class="grid mt">
+      <div>
+        <label>ID del Check-in (UUID)</label>
+        <input type="text" id="checkout-id" placeholder="Pega el UUID del check-in" required>
+      </div>
+      <div>
+        <label>Documento del Pasajero</label>
+        <input type="text" id="checkout-doc" placeholder="Ej. 11111111" required>
+      </div>
+      <div style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn btn-danger" style="width:100%;">Procesar Check-out</button>
+      </div>
+    </form>
+    
+    <div id="checkout-msg" class="mt"></div>
+  </div>`;
+
+  $("#form-checkout").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button");
+    const msgDiv = $("#checkout-msg");
+    btn.disabled = true;
+    btn.textContent = "Procesando...";
+    msgDiv.innerHTML = "";
+
+    const checkInId = $("#checkout-id").value;
+    const documentNumber = $("#checkout-doc").value;
+
+    logMock("CHECKOUT", `POST /api/check-in/checkout`, "POST");
+
+    try {
+      const res = await fetch('/api/check-in/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkInId, documentNumber })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        logMock("CHECKOUT", `200 OK · Check-out exitoso`, "OK");
+        playSound("success");
+        msgDiv.innerHTML = `<div class="note ok"><b>Check-out Exitoso:</b> ${data.data.message}</div>`;
+      } else {
+        playSound("error");
+        msgDiv.innerHTML = `<div class="note err"><b>Error:</b> ${data.error.message}</div>`;
+      }
+    } catch (err) {
+      msgDiv.innerHTML = `<div class="note err">Error de red.</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Procesar Check-out";
+    }
+  };
 }
 
 /* ================= SESIÓN, TEMA, RELOJ ================= */
