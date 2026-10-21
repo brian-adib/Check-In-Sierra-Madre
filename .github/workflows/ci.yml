@@ -23,21 +23,18 @@ jobs:
     - name: Instalar dependencias
       run: npm ci
 
-    # 1. Crear el archivo .env para el runner de GitHub
     - name: Crear archivo .env
       run: |
         echo "PORT=3000" >> .env
         echo "NODE_ENV=test" >> .env
         echo "DATABASE_URL=file:local.db" >> .env
 
-    # 2. Preparar la Base de Datos (Migrar y Sembrar)
     - name: Ejecutar Migraciones
       run: npm run migrate
 
     - name: Ejecutar Seeders
       run: npm run seed
 
-    # 3. Validaciones finales
     - name: Correr Linter (ESLint)
       run: npm run lint
 
