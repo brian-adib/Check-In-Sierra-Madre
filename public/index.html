@@ -1,88 +1,628 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sierra Madre Check-In</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { colors: { brand: '#1e3a8a' } } }
-        }
-    </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-in · Sierra Madre Resort & Casino</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.0/dist/confetti.browser.min.js"></script>
+<style>
+/* ================= VARIABLES Y BASE ================= */
+:root {
+  --bg: #eaeff0; --card: #fff; --ink: #0c1f1d; --mut: #586766; --line: #d5dddd;
+  --sea: #0f3f3a; --sea2: #175a52; --brass: #b08a42; --brassbg: #f3ead6;
+  --ok: #17794a; --okbg: #dcf3e6; --warn: #8a5a00; --warnbg: #fdf0cf;
+  --err: #b3261e; --errbg: #fbe1de; --r: 10px;
+}
+body.dark {
+  --bg: #091514; --card: #10201e; --ink: #e9f0ef; --mut: #93a5a3; --line: #233735;
+  --sea: #d1ad63; --sea2: #e0c07c; --brass: #d1ad63; --brassbg: #2a2412;
+  --ok: #5fd29a; --okbg: #10301f; --warn: #f0c453; --warnbg: #33290a;
+  --err: #ff8a80; --errbg: #3a1613;
+}
+* { box-sizing: border-box; margin: 0; }
+body { font: 15px/1.5 'Hanken Grotesk', system-ui, sans-serif; background: var(--bg); color: var(--ink); min-height: 100dvh; transition: background 0.3s, color 0.3s; }
+h1, h2, h3, .brand { font-family: 'Newsreader', Georgia, serif; font-weight: 600; line-height: 1.15; }
+h1 { font-size: 28px; } h2 { font-size: 24px; } h3 { font-size: 20px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* ================= COMPONENTES BÁSICOS ================= */
+.btn { background: var(--sea); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px; min-height: 42px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+body.dark .btn { color: #091514; }
+.btn:hover { background: var(--sea2); transform: translateY(-1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.ghost:hover { background: var(--line); }
+.btn.danger { background: var(--err); color: #fff; }
+.btn.sm { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+input, select { background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; width: 100%; min-height: 42px; }
+input:focus, select:focus { border-color: var(--brass); outline: none; box-shadow: 0 0 0 3px #b08a4233; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--mut); margin-bottom: 5px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; } .sp { justify-content: space-between; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.mut { color: var(--mut); font-size: 13px; } .mt { margin-top: 16px; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--brassbg); color: var(--warn); }
+.tag.ok { background: var(--okbg); color: var(--ok); } .tag.err { background: var(--errbg); color: var(--err); } .tag.vip { background: var(--sea); color: #fff; }
+body.dark .tag.vip { color: #091514; }
+.note { padding: 12px 14px; border-radius: 8px; background: var(--warnbg); color: var(--warn); margin-top: 12px; font-weight: 500; line-height: 1.5; }
+.note.err { background: var(--errbg); color: var(--err); } .note.ok { background: var(--okbg); color: var(--ok); }
+table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+th { font-size: 12px; color: var(--mut); font-weight: 600; } .scroll { overflow-x: auto; }
+
+/* ================= LOGIN ================= */
+#login { min-height: 100dvh; display: grid; place-items: center; padding: 20px; background: linear-gradient(160deg, #0c1f1d, #14504a); }
+#login .card { width: 100%; max-width: 400px; padding: 34px; border-top: 4px solid var(--brass); }
+#login h1 { margin-bottom: 4px; color: var(--sea); }
+body.dark #login h1 { color: var(--brass); }
+
+/* ================= SHELL (SIDEBAR Y TABS) ================= */
+#app { display: none; min-height: 100dvh; grid-template-columns: 240px 1fr; }
+#app.on { display: grid; }
+aside { background: var(--sea); color: #eaf3f1; padding: 22px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100dvh; z-index: 10; }
+body.dark aside { background: #0c1a19; border-right: 1px solid var(--line); }
+aside .brand { font-size: 20px; padding: 0 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+aside small { display: block; opacity: .7; font: 12px 'Hanken Grotesk'; margin-top: 4px; }
+aside .foot { margin-top: auto; display: grid; gap: 8px; padding: 0 4px; }
+aside .foot .btn { background: #ffffff1c; color: #fff; }
+
+main { padding: 26px; max-width: 1200px; width: 100%; overflow-y: auto; }
+
+.top-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.top-tab { background: transparent; border: 0; color: var(--mut); font-size: 13px; font-weight: 700; letter-spacing: 0.5px; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap; transition: 0.2s; text-transform: uppercase; }
+.top-tab:hover { color: var(--ink); background: var(--line); }
+.top-tab.active { background: var(--sea); color: #fff; }
+body.dark .top-tab.active { background: var(--brass); color: #091514; }
+.top-tab .tab-count { background: var(--brass); color: #0c1f1d; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 800; }
+body.dark .top-tab.active .tab-count { background: #091514; color: var(--brass); }
+
+header.top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+.clock { font: 600 22px 'Newsreader', serif; font-variant-numeric: tabular-nums; }
+.stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 18px; }
+.stat b { display: block; font: 600 36px 'Newsreader', serif; margin-top: 4px; }
+
+/* ================= WIZARD STEPS ================= */
+.steps { display: flex; gap: 0; margin-bottom: 24px; overflow-x: auto; background: var(--card); border-radius: var(--r); border: 1px solid var(--line); padding: 10px 10px 0; }
+.steps li { list-style: none; flex: 1; min-width: 90px; padding: 0 0 12px; border-bottom: 3px solid var(--line); font-size: 12px; font-weight: 600; color: var(--mut); text-align: center; transition: 0.2s; }
+.steps li.done { border-color: var(--sea2); color: var(--ink); }
+.steps li.cur { border-color: var(--brass); color: var(--ink); font-weight: 700; }
+
+/* ================= SELECTORES ================= */
+.opt { border: 1.5px solid var(--line); border-radius: var(--r); padding: 16px; cursor: pointer; background: var(--card); text-align: left; width: 100%; transition: 0.2s; }
+.opt:hover:not(:disabled) { border-color: var(--brass); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.opt[aria-pressed=true] { border-color: var(--brass); background: var(--brassbg); }
+.opt:disabled { opacity: .45; cursor: not-allowed; }
+.opt b { display: block; font-size: 16px; margin-bottom: 4px; }
+.pax { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.chk { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--ink); margin: 0; cursor: pointer; }
+.chk input { width: 20px; min-height: 0; height: 20px; cursor: pointer; }
+
+/* Preferencias Chips */
+.pref-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pref-chip { padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1.5px solid var(--line); font-size: 13px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+.pref-chip:hover { border-color: var(--brass); }
+.pref-chip.selected { background: var(--sea); color: #fff; border-color: var(--sea); }
+body.dark .pref-chip.selected { background: var(--brass); color: #091514; border-color: var(--brass); }
+
+/* ================= PASE Y QR ================= */
+.pass-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+.pass { display: grid; grid-template-columns: 1fr auto; gap: 16px; border: 2px solid var(--sea); border-radius: 12px; padding: 20px; background: var(--card); border-top: 6px solid var(--brass); position: relative; overflow: hidden; }
+body.dark .pass { border-color: var(--brass); }
+.pass dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin-top: 12px; font-size: 13px; }
+.pass dt { color: var(--mut); } .pass dd { font-weight: 600; }
+.qr-wrap { background: #fff; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+
+/* ================= MICROSERVICES LOG PANEL ================= */
+.mock-panel { position: fixed; bottom: 20px; right: 20px; width: 380px; max-height: 400px; background: #051510; color: #fff; border-radius: 10px; padding: 16px; font-family: 'Courier New', monospace; font-size: 11px; overflow-y: auto; z-index: 9999; border: 1px solid var(--brass); box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none; }
+.mock-panel.active { display: block; animation: slideIn 0.3s; }
+.mock-panel h4 { color: var(--brass); margin-bottom: 10px; font-size: 11px; letter-spacing: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; text-transform: uppercase; }
+.log-item { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); line-height: 1.4; }
+.log-item .hora { color: #6b7280; margin-right: 6px; }
+.log-item .servicio { color: var(--brass); font-weight: bold; }
+.log-item .ok { color: #86efac; } .log-item .err { color: #fca5a5; }
+.toggle-mock { position: fixed; bottom: 20px; right: 20px; background: #051510; color: var(--brass); border-radius: 50px; padding: 10px 18px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; z-index: 9998; border: 1px solid var(--brass); box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+.toggle-mock:hover { background: var(--brass); color: #051510; }
+.toggle-mock .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; }
+
+/* ================= TOASTS ================= */
+#toast { position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+#toast div { background: var(--card); border-left: 4px solid var(--ok); color: var(--ink); padding: 12px 18px; border-radius: 8px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.15); animation: slideInRight 0.3s ease; font-size: 14px; }
+#toast div.err { border-left-color: var(--err); }
+#toast div.warn { border-left-color: var(--warn); }
+
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+@media(max-width: 900px) {
+  #app.on { grid-template-columns: 1fr; }
+  aside { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 10px; }
+  aside .brand, aside .foot { display: none; }
+  main { padding: 16px; }
+  .pass { grid-template-columns: 1fr; }
+  .mock-panel { width: calc(100% - 40px); right: 20px; bottom: 70px; }
+}
+@media print {
+  aside, header.top, .steps, .top-tabs, .noprint, .toggle-mock, .mock-panel { display: none !important; }
+  #app.on { display: block; }
+  body { background: #fff; }
+  .pass { border: 1px solid #000; box-shadow: none; page-break-inside: avoid; }
+  .pass * { color: #000 !important; }
+}
+</style>
 </head>
-<body class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen flex">
+<body>
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-brand dark:bg-gray-800 text-white flex flex-col shadow-lg">
-        <div class="p-6 text-center border-b border-blue-800 dark:border-gray-700">
-            <h1 class="text-xl font-bold">Sierra Madre</h1>
-            <p class="text-xs text-blue-200 mt-1">Resort & Casino</p>
+<!-- LOGIN -->
+<section id="login"><form class="card" id="f-login" onsubmit="return false">
+  <h1>Sierra Madre</h1><p class="mut" style="margin-bottom:22px">Check-in de embarque · Terminal marítima</p>
+  <label for="u">Usuario</label><input id="u" value="agente01" autocomplete="username" required>
+  <label for="p" class="mt">Contraseña</label><input id="p" type="password" value="12345" autocomplete="current-password" required>
+  <button class="btn mt" style="width:100%">Entrar al sistema</button>
+  <p class="mut mt" id="le" role="alert" style="color:var(--err)"></p>
+  <p class="mut mt">Demo: agente01 o supervisor, contraseña 12345.</p>
+</form></section>
+
+<!-- APP SHELL -->
+<div id="app">
+  <aside>
+    <div class="brand">Sierra Madre<small>Resort & Casino</small></div>
+    <div style="margin-top:10px;">
+      <button class="btn sm" id="b-theme" style="width:100%;margin-bottom:8px;">Cambiar tema</button>
+      <button class="btn sm" id="b-out" style="width:100%;">Cerrar sesión</button>
+    </div>
+  </aside>
+  <main>
+    <div class="top-tabs" id="top-tabs"></div>
+    <header class="top">
+      <div><h1 id="title"></h1><p class="mut" id="who"></p></div>
+      <div class="clock" id="clock" aria-label="Hora">--:--:--</div>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+
+<!-- UTILIDADES -->
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlg" style="border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:24px;max-width:420px;width:92%;box-shadow:0 20px 50px rgba(0,0,0,0.5);"></dialog>
+
+<div class="toggle-mock" onclick="toggleMock()">
+  <span class="dot"></span> Tráfico microservicios
+</div>
+<div class="mock-panel" id="mock-panel">
+  <h4>Log de microservicios · Sierra Madre</h4>
+  <div id="mock-log"></div>
+</div>
+
+<script>
+/* ================= ESTADO Y PERSISTENCIA ================= */
+const $ = s => document.querySelector(s);
+const mem = {};
+const store = {
+  get(k) { try { return localStorage.getItem(k) } catch(e) { return mem[k] ?? null } },
+  set(k, v) { try { localStorage.setItem(k, v) } catch(e) { mem[k] = v } }
+};
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd = n => "$" + n.toLocaleString("en-US") + " USD";
+const hhmm = () => new Date().toTimeString().slice(0,5);
+
+/* AUDIO Y CONFETTI */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function playSound(tipo) {
+  try {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const freqs = { click:[{f:800,t:0,d:0.04}], success:[{f:660,t:0,d:0.08},{f:880,t:0.09,d:0.12}], warning:[{f:440,t:0,d:0.12}], error:[{f:220,t:0,d:0.15},{f:180,t:0.12,d:0.18}], complete:[{f:523,t:0,d:0.08},{f:659,t:0.09,d:0.08},{f:784,t:0.18,d:0.16}] };
+    (freqs[tipo]||freqs.click).forEach(n => {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type='sine'; osc.frequency.value=n.f;
+      gain.gain.setValueAtTime(0, now+n.t);
+      gain.gain.linearRampToValueAtTime(0.05, now+n.t+0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now+n.t+n.d);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now+n.t); osc.stop(now+n.t+n.d+0.02);
+    });
+  } catch(e) {}
+}
+
+/* ================= DATOS BASE ================= */
+const BASE = {"Interior":250, "Vista al mar":380, "Balcón Premium":450, "Familiar":620, "Suite Presidencial":1800};
+const P = (n,e,d,t=0) => ({n,e,d,t});
+const RES = {
+ "FAM-001": { tipo:"Balcón Premium", vip:0, pago:1, monto:2450, met:"Visa ···4821", pax:[P("Ana Perez",34,"11111111",1), P("Leo Perez",10,"22222222")] }
+};
+let CABS = []; 
+
+/* ESTADO GLOBAL */
+const seed = () => ({
+  cola: [{ id: "FAM-001", estado: "pendiente" }],
+  cab: {"CAB-805":"bloqueada", "CAB-208":"bloqueada"},
+  hist: [],
+  log: []
+});
+let S = (() => { try { return JSON.parse(store.get("sm3") || "null") } catch(e) { return null } })() || seed();
+let user = null, W = null, tab = "checkin";
+
+const save = () => store.set("sm3", JSON.stringify(S));
+const logSys = (m) => { S.log.unshift({h:hhmm(), u:user?.name||"-", m}); S.log = S.log.slice(0,60); save(); };
+
+function toast(m, type="ok") {
+  const d = document.createElement("div");
+  if(type==="err") d.className="err"; else if(type==="warn") d.className="warn";
+  d.textContent = m;
+  $("#toast").append(d);
+  setTimeout(()=>{ d.style.opacity="0"; setTimeout(()=>d.remove(),300); }, 3200);
+}
+function ask(html, okTxt, fn) {
+  const d = $("#dlg");
+  d.innerHTML = `<form method="dialog"><h3>${html[0]}</h3><div class="mt">${html[1]}</div><div class="row mt" style="justify-content:flex-end"><button class="btn ghost" value="x">Cancelar</button><button class="btn" value="ok">${okTxt}</button></div></form>`;
+  d.onclose = () => { if(d.returnValue==="ok") fn(d) };
+  d.returnValue = ""; d.showModal();
+}
+
+/* LOG MOCK */
+function logMock(servicio, mensaje, tipo="GET") {
+  const panel = $("#mock-log");
+  const hora = new Date().toLocaleTimeString();
+  const item = document.createElement("div");
+  item.className = "log-item";
+  let cls = "";
+  if(tipo==="OK"||tipo==="POST-OK") cls="ok"; if(tipo==="ERROR") cls="err";
+  item.innerHTML = `<span class="hora">${hora}</span><span class="servicio">[${tipo} ${servicio}]</span> <span class="${cls}">${mensaje}</span>`;
+  panel.appendChild(item);
+  panel.parentElement.scrollTop = panel.parentElement.scrollHeight;
+}
+function toggleMock() { $("#mock-panel").classList.toggle("active"); }
+
+/* REGLAS DE NEGOCIO */
+const adultos = r => r.pax.filter(p => p.e >= 18).length;
+const upgrade = (r,c) => r.vip ? 0 : Math.max(0, c.precio - (BASE[r.tipo]||0));
+function cargosEquipaje(r,m) {
+  if(r.vip) return {total:0, det:["Pasajero Elite: sin cargos de equipaje"]};
+  const n = r.pax.length, det = []; let t = 0;
+  const ex = Math.max(0, m.n - 2*n); if(ex) { t += ex*25; det.push(`${ex} pieza(s) extra × $25`); }
+  const kg = Math.max(0, m.kg - 30*n); if(kg) { t += kg*2; det.push(`${kg} kg extra × $2`); }
+  if(m.esp !== "No") { t += 15; det.push(`Manejo especial (${m.esp}) $15`); }
+  return {total:t, det};
+}
+
+/* ================= NAVEGACIÓN (TOP TABS) ================= */
+const TABS = () => [
+  ["checkin", "Nuevo Check-in", null],
+  ["cola", "Cola", S.cola.filter(c=>c.estado==="pendiente").length],
+  ["hist", "Completados", S.hist.length]
+];
+
+function renderTabs() {
+  $("#top-tabs").innerHTML = TABS().map(([k,l,n]) => `
+    <button class="top-tab ${tab===k?'active':''}" data-t="${k}">
+      ${l} ${n != null ? `<span class="tab-count">${n}</span>` : ""}
+    </button>
+  `).join("");
+}
+
+$("#top-tabs").onclick = e => { 
+  const b = e.target.closest("[data-t]"); 
+  if(b) { playSound("click"); go(b.dataset.t); } 
+};
+
+function go(t) {
+  tab = t; 
+  renderTabs();
+  $("#title").textContent = {
+    checkin: "Módulo Check-in", cola: "Cola de espera", hist: "Check-ins completados"
+  }[t];
+  $("#view").innerHTML = "";
+  ({checkin:vCheckin, cola:vCola, hist:vHist})[t]();
+}
+
+/* ================= VISTAS ================= */
+function vCola() {
+  const pend = S.cola.filter(c => c.estado === "pendiente");
+  $("#view").innerHTML = `
+  <div class="card">
+    <div class="row sp" style="margin-bottom:16px;">
+      <div><h3>Pasajeros en espera</h3><p class="mut">${pend.length} pendientes de ${S.cola.length}</p></div>
+    </div>
+    <div class="grid mt">
+      ${S.cola.map(c => {
+        const r = RES[c.id];
+        return `<button class="opt" data-id="${c.id}" ${c.estado!=="pendiente"?"disabled":""}>
+          <b>${esc(r.pax[0].n)}</b>
+          <span class="mut">${c.id} · ${r.pax.length} pax · ${r.tipo}</span>
+          <div style="margin-top:10px;">
+            <span class="tag ${c.estado==="completado"?"ok":""}">${c.estado==="completado"?"Completado":"En espera"}</span>
+          </div>
+        </button>`
+      }).join("")}
+    </div>
+  </div>`;
+  $("#view").onclick = e => { const b = e.target.closest("[data-id]"); if(b && !b.disabled) iniciar(b.dataset.id) };
+}
+
+async function iniciar(id) {
+  logMock("CHECKIN", `POST /api/check-in/initiate (${id})`, "POST");
+  
+  try {
+    const response = await fetch('/api/check-in/initiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupCode: id })
+    });
+    
+    const data = await response.json();
+
+    if (data.success) {
+      localStorage.setItem('activeCheckInId', data.data.checkInIds[0]);
+      logMock("CHECKIN", `200 OK · Pasajeros registrados`, "OK");
+      
+      const r = RES[id];
+      W = { id, r, step: 1, docs: {}, prefs: {}, cab: null, mal: {n: r.pax.length*2, kg: r.pax.length*20, esp: "No"}, pagoOk: !!r.pago, t0: Date.now() };
+      logSys("Inició check-in " + id);
+      go("checkin");
+    } else {
+      playSound("error");
+      toast(data.error.message, "err");
+    }
+  } catch (err) {
+    console.error(err);
+    toast("Error de conexión", "err");
+  }
+}
+
+const STEPS = ["Pasajeros","Verificación","Preferencias","Cabina","Equipaje","Pase"];
+
+function vCheckin() {
+  if(!W) { $("#view").innerHTML = `<div class="card"><h3>No hay un check-in en curso</h3><p class="mut mt">Elige un pasajero de la cola para empezar.</p><button class="btn mt" onclick="go('cola')">Ir a la cola</button></div>`; return; }
+  const r = W.r;
+  const head = `<ol class="steps">${STEPS.map((s,i) => `<li class="${i+1<W.step?"done":i+1===W.step?"cur":""}">${s}</li>`).join("")}</ol>`;
+  let body = "", next = null;
+
+  if(W.step === 1) {
+    body = `<div class="row sp"><h3>${W.id}</h3><span class="mut">${r.tipo} · ${r.pax.length} pasajero(s)</span></div>
+    ${r.pax.map(p => `<div class="pax"><div><b>${esc(p.n)}</b><div class="mut">${p.e} años · ${p.d}</div></div>${p.t?'<span class="tag">Titular</span>':""}${p.e<18?'<span class="tag">Menor</span>':""}</div>`).join("")}
+    <p class="mut mt">El check-in se hace por grupo: una cabina, un pase por pasajero y registro de equipaje.</p>`;
+    next = ["Continuar", () => true];
+  }
+  else if(W.step === 2) {
+    const noAd = adultos(r) === 0;
+    body = `${r.pax.map(p => `<div class="pax"><div><b>${esc(p.n)}</b><div class="mut">${p.d}${p.e<18?" · menor de edad":""}</div></div><label class="chk"><input type="checkbox" data-d="${p.d}" ${W.docs[p.d]?"checked":""}>Documento verificado</label></div>`).join("")}
+    <div class="note ${W.pagoOk?"ok":""}">${W.pagoOk?`Pago confirmado · ${usd(r.monto)} · ${r.met}`:`Pago pendiente: ${usd(r.monto)}. Sin pago no se puede abordar.`}</div>
+    ${W.pagoOk?"":'<button class="btn sm mt" id="b-pago">Registrar pago en mostrador</button>'}
+    ${noAd?'<div class="note err">Hay menores sin un adulto acompañante en la reservación.</div>':""}`;
+    next = ["Continuar", () => !noAd && W.pagoOk && r.pax.every(p => W.docs[p.d])];
+  }
+  else if(W.step === 3) {
+    const opts = {
+      comida: ["Sin restricciones","Vegetariano","Vegano","Sin gluten","Halal","Kosher"],
+      alergias: ["Ninguna","Mariscos","Cacahuates","Lácteos","Gluten","Frutos secos"],
+      asistencia: ["Ninguna","Silla de ruedas","Asistencia visual","Asistencia auditiva"]
+    };
+    body = `<p class="mut">Selecciona las preferencias para todo el grupo.</p>
+    <div class="mt"><label>Preferencia alimenticia</label><div class="pref-chips" data-cat="comida">${opts.comida.map(o=>`<button class="pref-chip ${(W.prefs.comida||opts.comida[0])===o?"selected":""}" data-val="${o}">${o}</button>`).join("")}</div></div>
+    <div class="mt"><label>Alergias / restricciones</label><div class="pref-chips" data-cat="alergias">${opts.alergias.map(o=>`<button class="pref-chip ${(W.prefs.alergias||opts.alergias[0])===o?"selected":""}" data-val="${o}">${o}</button>`).join("")}</div></div>
+    <div class="mt"><label>Asistencia especial</label><div class="pref-chips" data-cat="asistencia">${opts.asistencia.map(o=>`<button class="pref-chip ${(W.prefs.asistencia||opts.asistencia[0])===o?"selected":""}" data-val="${o}">${o}</button>`).join("")}</div></div>`;
+    next = ["Continuar", () => true];
+  }
+  else if(W.step === 4) {
+    body = `<p class="mut">Cabinas libres con capacidad para ${r.pax.length}.</p>
+    <div class="grid mt" id="cabinas-container">
+      <div class="mut">Cargando cabinas de la base de datos...</div>
+    </div>`;
+    next = ["Continuar", () => !!W.cab];
+    
+    fetch('/api/check-in/cabins')
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          CABS = data.data.map(c => ({
+            id: c.id, number: c.cabin_number,
+            tipo: c.deck === 1 ? "Interior" : c.deck === 2 ? "Vista al mar" : "Suite",
+            piso: c.deck, cap: c.capacity, ocupados: c.occupied, precio: c.capacity * 100
+          }));
+          
+          const cont = $("#cabinas-container");
+          const disponibles = CABS.filter(c => c.ocupados < c.cap && c.cap >= r.pax.length);
+          
+          if(disponibles.length === 0) {
+            cont.innerHTML = '<div class="note err">No quedan cabinas con esa capacidad.</div>';
+          } else {
+            cont.innerHTML = disponibles.map(c => {
+              const u = upgrade(r, c);
+              return `<button class="opt" data-c="${c.id}" aria-pressed="${W.cab?.id===c.id}">
+                <b>${c.number} · ${c.tipo}</b>
+                <span class="mut">Piso ${c.piso} · hasta ${c.cap}</span>
+                <div style="margin-top:8px">${u?`<span class="tag">+${usd(u)}</span>`:'<span class="tag ok">Incluida</span>'}</div>
+              </button>`;
+            }).join("");
+            logMock("CABINA", `200 OK · ${disponibles.length} disponibles`, "OK");
+          }
+        }
+      })
+      .catch(() => toast("Error al cargar cabinas", "err"));
+  }
+  else if(W.step === 5) {
+    const c = cargosEquipaje(r, W.mal), n = r.pax.length;
+    body = `<p class="mut">Franquicia: ${2*n} piezas y ${30*n} kg para el grupo.</p>
+    <div class="grid mt">
+      <div><label for="mn">Piezas</label><input id="mn" type="number" min="0" max="30" value="${W.mal.n}"></div>
+      <div><label for="mk">Peso total (kg)</label><input id="mk" type="number" min="0" max="600" value="${W.mal.kg}"></div>
+      <div><label for="me">Manejo especial</label><select id="me">${["No","Frágil","Medicina","Valores"].map(o => `<option ${W.mal.esp===o?"selected":""}>${o}</option>`).join("")}</select></div>
+    </div>
+    <div class="note ${c.total?"":"ok"}" id="nota-cargos">${c.total?`Cargos: ${usd(c.total)}<br>`:"Sin cargos adicionales"}${c.det.map(esc).join("<br>")}</div>`;
+    next = ["Finalizar check-in", () => W.mal.n>=0 && W.mal.kg>=0];
+  }
+  else { return pase(head); }
+
+  $("#view").innerHTML = `<div class="card">${head}${body}<div class="row sp mt noprint" style="border-top:1px solid var(--line);padding-top:20px;"><button class="btn ghost" id="b-back">${W.step===1?"Cancelar":"Atrás"}</button><button class="btn" id="b-next" ${next[1]()?"":"disabled"}>${next[0]}</button></div></div>`;
+
+  const refresh = () => { $("#b-next").disabled = !next[1]() };
+  $("#b-back").onclick = () => { playSound("click"); if(W.step===1) { W=null; go("cola") } else { W.step--; vCheckin() } };
+  $("#b-next").onclick = () => { playSound("success"); W.step===5 ? finalizar() : (W.step++, vCheckin()); };
+  
+  if(W.step === 2) {
+    $("#view").querySelectorAll("[data-d]").forEach(i => i.onchange = () => { W.docs[i.dataset.d] = i.checked; refresh() });
+    $("#b-pago") && ($("#b-pago").onclick = () => ask(["Registrar pago",`Confirma que cobraste ${usd(r.monto)}.`],"Confirmar",()=>{ W.pagoOk=true; r.pago=1; logSys("Pago registrado"); vCheckin() }));
+  }
+  if(W.step === 3) {
+    $("#view").querySelectorAll(".pref-chip").forEach(c => {
+      c.onclick = () => {
+        const parent = c.parentElement;
+        parent.querySelectorAll(".pref-chip").forEach(x => x.classList.remove("selected"));
+        c.classList.add("selected");
+        W.prefs[parent.dataset.cat] = c.dataset.val;
+      }
+    });
+  }
+  if(W.step === 4) {
+    setTimeout(() => {
+      $("#view").querySelectorAll("[data-c]").forEach(b => b.onclick = () => { 
+        playSound("click"); 
+        W.cab = CABS.find(c => c.id === b.dataset.c); 
+        vCheckin() 
+      });
+    }, 500);
+  }
+  if(W.step === 5) {
+    const f = () => {
+      W.mal = { n: +$("#mn").value||0, kg: +$("#mk").value||0, esp: $("#me").value };
+      const c = cargosEquipaje(r, W.mal);
+      const el = $("#nota-cargos");
+      el.className = "note" + (c.total?"":" ok");
+      el.innerHTML = (c.total?`Cargos: ${usd(c.total)}<br>`:"Sin cargos adicionales") + c.det.map(esc).join("<br>");
+      refresh();
+    };
+    ["#mn","#mk","#me"].forEach(s => $(s).oninput = f);
+  }
+}
+
+async function finalizar() {
+  const r = W.r, c = W.cab;
+  const checkInId = localStorage.getItem('activeCheckInId');
+
+  try {
+    const resCab = await fetch('/api/check-in/cabin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checkInId: checkInId, cabinId: c.id })
+    });
+    const dataCab = await resCab.json();
+    if (!dataCab.success) {
+      toast(dataCab.error.message, "err");
+      return;
+    }
+    logMock("CABINA", `200 OK · Asignada`, "OK");
+  } catch (err) {
+    toast("Error al asignar cabina", "err"); return;
+  }
+
+  S.cab[c.id] = W.id;
+  S.cola.find(x => x.id === W.id).estado = "completado";
+  
+  const carg = cargosEquipaje(r, W.mal).total, up = upgrade(r, c);
+  W.extra = carg + up; W.up = up; W.carg = carg;
+  
+  S.hist.unshift({
+    h: hhmm(), id: W.id, n: r.pax[0].n, pax: r.pax.length, cab: c.number, mal: W.mal.n, kg: W.mal.kg,
+    extra: W.extra, est: r.vip?"Elite":"Completado", ag: user.name, seg: Math.round((Date.now()-W.t0)/1000)
+  });
+  
+  save();
+  W.step = 6;
+  go("checkin");
+  renderTabs();
+  playSound("complete");
+  try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#b08a42', '#0f3f3a', '#fff'] }); } catch(e) {}
+}
+
+function pase(head) {
+  const r = W.r, c = W.cab;
+  const checkInId = localStorage.getItem('activeCheckInId');
+  
+  $("#view").innerHTML = `
+  <div class="card">
+    ${head}
+    <div class="note ok noprint" style="margin-bottom:20px;">
+      Check-in completo. ${W.extra ? `Cargos cobrados: ${usd(W.extra)}.` : "Sin cargos adicionales."}
+    </div>
+    <div class="pass-grid">
+      <div class="pass">
+        <div>
+          <h3>${esc(r.pax[0].n)}</h3>
+          <dl>
+            <dt>Reservación</dt><dd>${W.id}</dd>
+            <dt>Cabina</dt><dd>${c.number} · piso ${c.piso}</dd>
+            <dt>Equipaje</dt><dd>${W.mal.n} piezas · ${W.mal.kg} kg</dd>
+          </dl>
         </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <button data-tab="checkin" class="tab-btn w-full text-left px-4 py-2 rounded bg-blue-800 font-medium">Check-in</button>
-            <button data-tab="cabins" class="tab-btn w-full text-left px-4 py-2 rounded hover:bg-blue-800 transition">Cabinas</button>
-            <button data-tab="status" class="tab-btn w-full text-left px-4 py-2 rounded hover:bg-blue-800 transition">Estado del Sistema</button>
-        </nav>
-        <div class="p-4 border-t border-blue-800 dark:border-gray-700">
-            <button id="themeToggle" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded text-sm transition">
-                Cambiar Tema
-            </button>
+        <div class="qr-wrap" id="qr-container-0">
+           <div class="mut" style="font-size:10px; padding:10px; text-align:center;">Cargando QR...</div>
         </div>
-    </aside>
+      </div>
+    </div>
+    <div class="row mt noprint" style="justify-content:center;margin-top:30px;">
+      <button class="btn" onclick="window.print()">Imprimir pase</button>
+      <button class="btn ghost" onclick="W=null;go('cola')">Siguiente pasajero</button>
+    </div>
+  </div>`;
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex justify-between items-center">
-            <h2 class="text-2xl font-semibold" id="pageTitle">Check-in de Pasajeros</h2>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Recepción</div>
-        </header>
+  fetch(`/api/check-in/${checkInId}/qr`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById("qr-container-0").innerHTML = `<img src="${data.data.qrBase64}" style="width:120px; height:120px; border-radius:8px;" />`;
+        logMock("CHECKIN", `200 OK · QR Generado`, "OK");
+      } else {
+        document.getElementById("qr-container-0").innerHTML = `<div style="color:red; font-size:10px;">Error al generar QR</div>`;
+      }
+    })
+    .catch(() => {
+      document.getElementById("qr-container-0").innerHTML = `<div style="color:red; font-size:10px;">Error de red</div>`;
+    });
+}
 
-        <div class="flex-1 overflow-y-auto p-6">
-            
-            <!-- Tab: Check-in -->
-            <section id="tab-checkin" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow max-w-md">
-                    <form id="checkinForm">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium mb-2">Código de Reserva (Reservaciones)</label>
-                            <input type="text" id="groupCode" required class="w-full border p-2 rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Ej. FAM-001">
-                        </div>
-                        
-                        <button type="submit" class="w-full bg-brand text-white p-2 rounded hover:bg-blue-800 transition font-bold">Buscar y Hacer Check-in</button>
-                    </form>
-                    
-                    <div id="messageContainer" class="mt-4 hidden p-4 rounded border"></div>
-                </div>
-            </section>
+/* ================= HISTORIAL ================= */
+function vHist() {
+  $("#view").innerHTML = `
+  <div class="card">
+    <div class="row sp" style="margin-bottom:16px;">
+      <h3>Check-ins completados</h3>
+    </div>
+    ${S.hist.length ? `
+      <div class="scroll mt"><table>
+        <tr><th>Hora</th><th>Reserva</th><th>Titular</th><th>Pax</th><th>Cabina</th><th>Equipaje</th><th>Cargos</th></tr>
+        ${S.hist.map(h => `<tr>
+          <td>${h.h}</td><td><b>${h.id}</b></td><td>${esc(h.n)}</td><td>${h.pax}</td><td>${h.cab}</td>
+          <td>${h.mal} pz · ${h.kg} kg</td>
+          <td>${h.extra?usd(h.extra):"—"}</td>
+        </tr>`).join("")}
+      </table></div>
+    ` : '<p class="mut mt">Aún no hay check-ins completados.</p>'}
+  </div>`;
+}
 
-            <!-- Tab: Cabins -->
-            <section id="tab-cabins" class="tab-content hidden">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <h3 class="text-xl font-bold mb-4">Mapa de Cabinas</h3>
-                    <p class="text-sm text-gray-500 mb-6">Haz clic en una cabina verde para asignarla.</p>
-                    <div id="cabinsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-                </div>
-            </section>
+/* ================= SESIÓN, TEMA, RELOJ ================= */
+$("#f-login").onsubmit = e => {
+  e.preventDefault(); const n = $("#u").value.trim().toLowerCase();
+  if($("#p").value !== "12345" || !["agente01","supervisor"].includes(n)) { $("#le").textContent="Usuario o contraseña incorrectos."; return; }
+  user = {name:n, sup:n==="supervisor"};
+  $("#login").style.display = "none"; $("#app").classList.add("on");
+  $("#who").textContent = `${n} · ${user.sup?"Supervisor":"Agente"}`;
+  logSys("Inició sesión"); 
+  renderTabs(); 
+  go("checkin");
+};
+$("#b-out").onclick = () => { logSys("Cerró sesión"); location.reload() };
 
-            <!-- Tab: Status -->
-            <section id="tab-status" class="tab-content hidden">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <p>Estado del servidor y conexiones.</p>
-                </div>
-            </section>
+const setTheme = d => { document.body.classList.toggle("dark", d); store.set("sm3t", d?"1":"0") };
+setTheme(store.get("sm3t") ? store.get("sm3t")==="1" : matchMedia("(prefers-color-scheme:dark)").matches);
+$("#b-theme").onclick = () => setTheme(!document.body.classList.contains("dark"));
 
-        </div>
-    </main>
-
-    <script type="module" src="/js/app.js"></script>
+const tick = () => $("#clock").textContent = new Date().toTimeString().slice(0,8);
+tick(); setInterval(tick, 1000);
+</script>
 </body>
 </html>
