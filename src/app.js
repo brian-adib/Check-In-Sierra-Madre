@@ -40,7 +40,7 @@ app.use('/api/mock', mockRoute);
 app.use('/api/check-in', checkinRoute);
 
 // Error Handling
-app.use('/api', notFoundHandler);
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 export default app;
