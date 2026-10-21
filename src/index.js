@@ -7,6 +7,10 @@ import { logger } from './config/logger.js';
 import { requestLogger } from './middlewares/logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import healthRoute from './routes/health.route.js';
+import app from './app.js';
+import { env } from './config/env.js';
+import { logger } from './config/logger.js';
+
 
 const app = express();
 
