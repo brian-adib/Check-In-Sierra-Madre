@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sierra Madre Check-In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Anti-FOUC: Aplica el modo oscuro ANTES de renderizar
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { brand: '#1e3a8a' } } }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen">
+    
+    <div class="p-8 max-w-4xl mx-auto text-center mt-20">
+        <h1 class="text-4xl font-bold text-brand dark:text-blue-400 mb-4">Sierra Madre Resort & Casino</h1>
+        <p class="text-lg mb-8">Sistema de Check-in de Pasajeros</p>
+        
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md inline-block">
+            <p class="mb-4">El servidor está sirviendo el Frontend correctamente.</p>
+            <button id="themeToggle" class="bg-brand text-white px-4 py-2 rounded hover:bg-blue-800 transition">
+                Cambiar Tema (Dark/Light)
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
