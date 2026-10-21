@@ -190,3 +190,7 @@ export const processCheckout = async (checkInId, documentNumber) => {
 
   return { message: chargeMessage };
 };
+export const getCabins = async () => {
+  const result = await db.execute('SELECT id, cabin_number, deck, capacity, occupied FROM cabins');
+  return result.rows;
+};

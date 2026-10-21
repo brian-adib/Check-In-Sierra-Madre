@@ -56,3 +56,11 @@ export const checkout = async (req, res, next) => {
     next(error);
   }
 };
+export const listCabins = async (req, res, next) => {
+  try {
+    const cabins = await checkinService.getCabins();
+    res.status(200).json({ success: true, data: cabins });
+  } catch (error) {
+    next(error);
+  }
+};
