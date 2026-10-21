@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+local.db
+.env
+.git
+.gitignore
+.github
+_scratch
+tests
+coverage
