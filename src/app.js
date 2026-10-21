@@ -1,4 +1,5 @@
 import express from 'express';
+import checkinRoute from './routes/checkin.route.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -26,8 +27,8 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Routes
 app.use('/health', healthRoute);
-app.use('/api/mock', mockRoute); // <-- Nueva Ruta
-
+app.use('/api/mock', mockRoute);
+app.use('/api/check-in', checkinRoute); // <-- Esta línea es la clave
 // Error Handling
 app.use(notFoundHandler);
 app.use(errorHandler);
