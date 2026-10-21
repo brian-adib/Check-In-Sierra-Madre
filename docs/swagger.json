@@ -5,27 +5,106 @@
     "version": "1.0.0",
     "description": "Microservicio de Check-in para el crucero Sierra Madre Resort & Casino"
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Servidor Local"
-    }
-  ],
-  "paths": {},
-  "components": {
-    "schemas": {
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": false },
-          "error": {
-            "type": "object",
-            "properties": {
-              "code": { "type": "string", "example": "ERR_AGE_REQUIREMENT" },
-              "message": { "type": "string", "example": "Minors require an adult." }
+  "servers": [{ "url": "http://localhost:3000" }],
+  "paths": {
+    "/api/check-in/initiate": {
+      "post": {
+        "summary": "Iniciar Check-in",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "groupCode": { "type": "string" },
+                  "passengers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "documentType": { "type": "string" },
+                        "documentNumber": { "type": "string" },
+                        "firstName": { "type": "string" },
+                        "lastName": { "type": "string" },
+                        "birthDate": { "type": "string" },
+                        "isVip": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
-        }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/check-in/pay": {
+      "post": {
+        "summary": "Procesar pago de reserva",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checkInId": { "type": "string" },
+                  "amount": { "type": "number" },
+                  "documentNumber": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Payment processed" } }
+      }
+    },
+    "/api/check-in/cabin": {
+      "post": {
+        "summary": "Asignar cabina",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checkInId": { "type": "string" },
+                  "cabinId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Cabin assigned" } }
+      }
+    },
+    "/api/check-in/checkout": {
+      "post": {
+        "summary": "Procesar Check-out y cobros extra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checkInId": { "type": "string" },
+                  "documentNumber": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Check-out completed" } }
+      }
+    },
+    "/api/check-in/{id}/qr": {
+      "get": {
+        "summary": "Obtener pase QR",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "QR Base64 string" } }
       }
     }
   }

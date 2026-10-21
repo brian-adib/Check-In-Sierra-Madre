@@ -1,5 +1,6 @@
 import { db } from '../db/client.js';
 import { randomUUID } from 'crypto';
+import QRCode from 'qrcode';
 
 export const initiateCheckIn = async (data) => {
   const { groupCode, passengers } = data;
@@ -37,7 +38,6 @@ export const initiateCheckIn = async (data) => {
         args: [paxId, groupId, pax.documentType, pax.documentNumber, pax.firstName, pax.lastName, pax.birthDate, pax.isVip ? 1 : 0]
       });
 
-      // Create the check_in record linked to passenger
       await tx.execute({
         sql: `INSERT INTO check_ins (id, passenger_id, status) VALUES (?, ?, 'PENDING')`,
         args: [checkInId, paxId]
@@ -54,7 +54,6 @@ export const initiateCheckIn = async (data) => {
 export const processPayment = async (data) => {
   const { checkInId, amount, documentNumber } = data;
 
-  // Call internal Bank Mock
   const response = await fetch('http://localhost:3000/api/mock/bank/charge', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -80,7 +79,6 @@ export const processPayment = async (data) => {
 export const assignCabin = async (data) => {
   const { checkInId, cabinId } = data;
 
-  // Call internal Cabin Mock
   const response = await fetch(`http://localhost:3000/api/mock/cabin/availability/${cabinId}`);
   const result = await response.json();
 
@@ -102,16 +100,13 @@ export const assignCabin = async (data) => {
     throw error;
   }
 };
-import QRCode from 'qrcode';
 
 export const generateQR = async (checkInId) => {
-  // 1. Buscamos el check-in en la base de datos para ver su estado actual
   const checkInResult = await db.execute({
     sql: 'SELECT status, qr_payload FROM check_ins WHERE id = ?',
     args: [checkInId]
   });
 
-  // Si no existe, lanzamos un error 404
   if (checkInResult.rows.length === 0) {
     const error = new Error('Check-in not found');
     error.code = 'ERR_NOT_FOUND';
@@ -121,7 +116,6 @@ export const generateQR = async (checkInId) => {
 
   const checkIn = checkInResult.rows[0];
 
-  // 2. Regla de negocio: El pase de abordar solo se genera si ya está en progreso o completado
   if (checkIn.status !== 'IN_PROGRESS' && checkIn.status !== 'COMPLETED') {
     const error = new Error('Check-in is not ready for boarding pass');
     error.code = 'ERR_CHECKIN_INCOMPLETE';
@@ -129,20 +123,70 @@ export const generateQR = async (checkInId) => {
     throw error;
   }
 
-  // 3. Idempotencia: Si el QR ya fue generado antes, lo devolvemos de la DB sin gastar recursos
-  if (checkIn.qr_payload) {
-    return { qrBase64: checkIn.qr_payload };
-  }
+  if (checkIn.qr_payload) return { qrBase64: checkIn.qr_payload };
 
-  // 4. Generación del QR: Creamos un string JSON con la info del pase y lo convertimos a imagen Base64
   const payload = { checkInId, boarding: 'SIERRA-MADRE', timestamp: Date.now() };
   const qrBase64 = await QRCode.toDataURL(JSON.stringify(payload));
 
-  // 5. Guardamos el Base64 generado en la base de datos para futuras consultas
   await db.execute({
     sql: 'UPDATE check_ins SET qr_payload = ? WHERE id = ?',
     args: [qrBase64, checkInId]
   });
 
   return { qrBase64 };
+};
+
+export const processCheckout = async (checkInId, documentNumber) => {
+  const result = await db.execute({
+    sql: 'SELECT cabin_id FROM check_ins WHERE id = ?',
+    args: [checkInId]
+  });
+
+  if (result.rows.length === 0 || !result.rows[0].cabin_id) {
+    const error = new Error('Cabin not assigned for this check-in');
+    error.code = 'ERR_NO_CABIN';
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const cabinId = result.rows[0].cabin_id;
+
+  // 1. Consultar al Mock de Cabina
+  const cabinResponse = await fetch(`http://localhost:3000/api/mock/cabin/checkout-report/${cabinId}`);
+  const cabinReport = await cabinResponse.json();
+
+  let chargeMessage = 'Check-out successful. No extra charges.';
+
+  // 2. Si hay cargos, llamar al Banco
+  if (cabinReport.hasCharges && cabinReport.amount > 0) {
+    const bankResponse = await fetch('http://localhost:3000/api/mock/bank/charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: cabinReport.amount, document: documentNumber })
+    });
+    
+    const bankResult = await bankResponse.json();
+
+    if (!bankResult.success) {
+      const error = new Error('Extra charges payment declined by bank');
+      error.code = 'ERR_PAYMENT_PENDING';
+      error.statusCode = 402;
+      throw error;
+    }
+
+    await db.execute({
+      sql: `INSERT INTO payments (id, check_in_id, amount_cents, status) VALUES (?, ?, ?, 'PAID')`,
+      args: [randomUUID(), checkInId, cabinReport.amount * 100]
+    });
+
+    chargeMessage = `Check-out successful. Extra charge of $${cabinReport.amount} processed for: ${cabinReport.reason}`;
+  }
+
+  // 3. Actualizar estado final
+  await db.execute({
+    sql: "UPDATE check_ins SET status = 'COMPLETED' WHERE id = ?",
+    args: [checkInId]
+  });
+
+  return { message: chargeMessage };
 };

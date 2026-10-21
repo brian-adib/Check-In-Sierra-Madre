@@ -1,12 +1,7 @@
 import { initiateCheckInSchema, payCheckInSchema, assignCabinSchema } from '../validators/checkin.validator.js';
 import * as checkinService from '../services/checkin.service.js';
 
-const formatZodError = (error, res) => {
-  return res.status(400).json({
-    success: false,
-    error: { code: 'ERR_VALIDATION', message: error.errors[0].message }
-  });
-};
+const formatZodError = (error, res) => res.status(400).json({ success: false, error: { code: 'ERR_VALIDATION', message: error.errors[0].message } });
 
 export const initiate = async (req, res, next) => {
   try {
@@ -15,7 +10,7 @@ export const initiate = async (req, res, next) => {
     res.status(201).json({ success: true, data: result });
   } catch (error) {
     if (error.name === 'ZodError') return formatZodError(error, res);
-    next(error); // Pasa el error al errorHandler global
+    next(error);
   }
 };
 
@@ -40,21 +35,24 @@ export const cabin = async (req, res, next) => {
     next(error);
   }
 };
-// Controlador para obtener el código QR
+
 export const qr = async (req, res, next) => {
   try {
-    // Extraemos el ID del check-in desde los parámetros de la URL
     const { id } = req.params;
-    
-    if (!id) throw new Error('Missing ID'); // Validación básica
-    
-    // Llamamos al servicio que hace la magia de generar (o recuperar) el QR
     const result = await checkinService.generateQR(id);
-    
-    // Respondemos con éxito y el string Base64
     res.status(200).json({ success: true, data: result });
   } catch (error) {
-    // Si algo falla, pasamos el error al manejador global
+    next(error);
+  }
+};
+
+export const checkout = async (req, res, next) => {
+  try {
+    const { checkInId, documentNumber } = req.body;
+    if (!checkInId || !documentNumber) throw new Error('Missing required fields');
+    const result = await checkinService.processCheckout(checkInId, documentNumber);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
     next(error);
   }
 };
