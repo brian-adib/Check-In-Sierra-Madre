@@ -40,3 +40,21 @@ export const cabin = async (req, res, next) => {
     next(error);
   }
 };
+// Controlador para obtener el código QR
+export const qr = async (req, res, next) => {
+  try {
+    // Extraemos el ID del check-in desde los parámetros de la URL
+    const { id } = req.params;
+    
+    if (!id) throw new Error('Missing ID'); // Validación básica
+    
+    // Llamamos al servicio que hace la magia de generar (o recuperar) el QR
+    const result = await checkinService.generateQR(id);
+    
+    // Respondemos con éxito y el string Base64
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    // Si algo falla, pasamos el error al manejador global
+    next(error);
+  }
+};

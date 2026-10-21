@@ -102,3 +102,47 @@ export const assignCabin = async (data) => {
     throw error;
   }
 };
+import QRCode from 'qrcode';
+
+export const generateQR = async (checkInId) => {
+  // 1. Buscamos el check-in en la base de datos para ver su estado actual
+  const checkInResult = await db.execute({
+    sql: 'SELECT status, qr_payload FROM check_ins WHERE id = ?',
+    args: [checkInId]
+  });
+
+  // Si no existe, lanzamos un error 404
+  if (checkInResult.rows.length === 0) {
+    const error = new Error('Check-in not found');
+    error.code = 'ERR_NOT_FOUND';
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const checkIn = checkInResult.rows[0];
+
+  // 2. Regla de negocio: El pase de abordar solo se genera si ya está en progreso o completado
+  if (checkIn.status !== 'IN_PROGRESS' && checkIn.status !== 'COMPLETED') {
+    const error = new Error('Check-in is not ready for boarding pass');
+    error.code = 'ERR_CHECKIN_INCOMPLETE';
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // 3. Idempotencia: Si el QR ya fue generado antes, lo devolvemos de la DB sin gastar recursos
+  if (checkIn.qr_payload) {
+    return { qrBase64: checkIn.qr_payload };
+  }
+
+  // 4. Generación del QR: Creamos un string JSON con la info del pase y lo convertimos a imagen Base64
+  const payload = { checkInId, boarding: 'SIERRA-MADRE', timestamp: Date.now() };
+  const qrBase64 = await QRCode.toDataURL(JSON.stringify(payload));
+
+  // 5. Guardamos el Base64 generado en la base de datos para futuras consultas
+  await db.execute({
+    sql: 'UPDATE check_ins SET qr_payload = ? WHERE id = ?',
+    args: [qrBase64, checkInId]
+  });
+
+  return { qrBase64 };
+};
