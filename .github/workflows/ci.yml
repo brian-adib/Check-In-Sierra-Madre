@@ -1,0 +1,45 @@
+name: Node.js CI (Lint & Test)
+
+on:
+  push:
+    branches: [ "main", "Prototipo", "feature/*" ]
+  pull_request:
+    branches: [ "main", "Prototipo" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Instalar dependencias
+      run: npm ci
+
+    # 1. Crear el archivo .env para el runner de GitHub
+    - name: Crear archivo .env
+      run: |
+        echo "PORT=3000" >> .env
+        echo "NODE_ENV=test" >> .env
+        echo "DATABASE_URL=file:local.db" >> .env
+
+    # 2. Preparar la Base de Datos (Migrar y Sembrar)
+    - name: Ejecutar Migraciones
+      run: npm run migrate
+
+    - name: Ejecutar Seeders
+      run: npm run seed
+
+    # 3. Validaciones finales
+    - name: Correr Linter (ESLint)
+      run: npm run lint
+
+    - name: Correr Pruebas (Vitest)
+      run: npm run test
