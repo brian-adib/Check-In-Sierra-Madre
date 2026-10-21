@@ -6,8 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { requestLogger } from './middlewares/logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import healthRoute from './routes/health.route.js';
-
-// Load swagger.json directly
+import mockRoute from './routes/mock.route.js'; // <-- Nuevo Import
 import swaggerDocument from '../docs/swagger.json' with { type: 'json' };
 
 const app = express();
@@ -22,11 +21,12 @@ app.use(rateLimit({
 app.use(express.json());
 app.use(requestLogger);
 
-// Swagger UI Route
+// Swagger
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// API Routes
+// Routes
 app.use('/health', healthRoute);
+app.use('/api/mock', mockRoute); // <-- Nueva Ruta
 
 // Error Handling
 app.use(notFoundHandler);
