@@ -1,0 +1,32 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sierra Madre Check-In API",
+    "version": "1.0.0",
+    "description": "Microservicio de Check-in para el crucero Sierra Madre Resort & Casino"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor Local"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "ERR_AGE_REQUIREMENT" },
+              "message": { "type": "string", "example": "Minors require an adult." }
+            }
+          }
+        }
+      }
+    }
+  }
+}
