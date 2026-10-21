@@ -20,3 +20,11 @@ export const assignCabinSchema = z.object({
     cabinId: z.string().uuid()
   })
 });
+export const luggageSchema = z.object({
+  body: z.object({
+    checkInId: z.string().uuid(),
+    bagCount: z.number().min(0),
+    totalWeightKg: z.number().min(0),
+    isVip: z.boolean().optional().default(false)
+  })
+});
