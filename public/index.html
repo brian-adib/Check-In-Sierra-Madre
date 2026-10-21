@@ -6,7 +6,6 @@
     <title>Sierra Madre Check-In</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Anti-FOUC: Aplica el modo oscuro ANTES de renderizar
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -20,19 +19,60 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen">
-    
-    <div class="p-8 max-w-4xl mx-auto text-center mt-20">
-        <h1 class="text-4xl font-bold text-brand dark:text-blue-400 mb-4">Sierra Madre Resort & Casino</h1>
-        <p class="text-lg mb-8">Sistema de Check-in de Pasajeros</p>
-        
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md inline-block">
-            <p class="mb-4">El servidor está sirviendo el Frontend correctamente.</p>
-            <button id="themeToggle" class="bg-brand text-white px-4 py-2 rounded hover:bg-blue-800 transition">
-                Cambiar Tema (Dark/Light)
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen flex">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-brand dark:bg-gray-800 text-white flex flex-col shadow-lg">
+        <div class="p-6 text-center border-b border-blue-800 dark:border-gray-700">
+            <h1 class="text-xl font-bold">Sierra Madre</h1>
+            <p class="text-xs text-blue-200 mt-1">Resort & Casino</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button data-tab="checkin" class="tab-btn w-full text-left px-4 py-2 rounded bg-blue-800 font-medium">Check-in</button>
+            <button data-tab="cabins" class="tab-btn w-full text-left px-4 py-2 rounded hover:bg-blue-800 transition">Cabinas</button>
+            <button data-tab="status" class="tab-btn w-full text-left px-4 py-2 rounded hover:bg-blue-800 transition">Estado del Sistema</button>
+        </nav>
+        <div class="p-4 border-t border-blue-800 dark:border-gray-700">
+            <button id="themeToggle" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded text-sm transition">
+                Cambiar Tema
             </button>
         </div>
-    </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- HEADER -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex justify-between items-center">
+            <h2 class="text-2xl font-semibold" id="pageTitle">Check-in de Pasajeros</h2>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Recepción</div>
+        </header>
+
+        <!-- TABS CONTENT -->
+        <div class="flex-1 overflow-y-auto p-6">
+            
+            <!-- Tab: Check-in -->
+            <section id="tab-checkin" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <p>Aquí irá el formulario del Wizard de Check-in (Siguiente paso).</p>
+                </div>
+            </section>
+
+            <!-- Tab: Cabins -->
+            <section id="tab-cabins" class="tab-content hidden">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <p>Aquí irá el mapa visual de cabinas (Paso 4).</p>
+                </div>
+            </section>
+
+            <!-- Tab: Status -->
+            <section id="tab-status" class="tab-content hidden">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <p>Estado del servidor y conexiones.</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
 
     <script type="module" src="/js/app.js"></script>
 </body>
