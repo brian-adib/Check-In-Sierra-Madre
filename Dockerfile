@@ -1,12 +1,12 @@
-# Etapa 1: Construcción (Instala dependencias de producción)
-FROM node:20-alpine AS builder
+# Etapa 1: Construcción (Usamos Debian Slim en lugar de Alpine)
+FROM node:20-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
 
-# Etapa 2: Imagen final (Ligera y segura)
-FROM node:20-alpine
+# Etapa 2: Imagen final (Debian Slim)
+FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -17,7 +17,7 @@ COPY --from=builder /app ./
 # Exponer el puerto
 EXPOSE 3000
 
-# Healthcheck exigido por el brief (verifica que /health responda 200)
+# Healthcheck exigido por el brief
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
