@@ -1,4 +1,4 @@
-import { initiateCheckInSchema, payCheckInSchema, assignCabinSchema } from '../validators/checkin.validator.js';
+import { initiateCheckInSchema, payCheckInSchema, assignCabinSchema, luggageSchema } from '../validators/checkin.validator.js';
 import * as checkinService from '../services/checkin.service.js';
 
 const formatZodError = (error, res) => res.status(400).json({ success: false, error: { code: 'ERR_VALIDATION', message: error.errors[0].message } });
@@ -10,6 +10,16 @@ export const initiate = async (req, res, next) => {
     res.status(201).json({ success: true, data: result });
   } catch (error) {
     if (error.name === 'ZodError') return formatZodError(error, res);
+    next(error);
+  }
+};
+
+export const confirmReservation = async (req, res, next) => {
+  try {
+    const { checkInId } = req.body;
+    const result = await checkinService.sendToReservations(checkInId);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
     next(error);
   }
 };
@@ -36,12 +46,32 @@ export const cabin = async (req, res, next) => {
   }
 };
 
+export const listCabins = async (req, res, next) => {
+  try {
+    const cabins = await checkinService.getCabins();
+    res.status(200).json({ success: true, data: cabins });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const qr = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await checkinService.generateQR(id);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const luggage = async (req, res, next) => {
+  try {
+    const validated = luggageSchema.parse({ body: req.body });
+    const result = await checkinService.registerLuggage(validated.body);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    if (error.name === 'ZodError') return formatZodError(error, res);
     next(error);
   }
 };
@@ -53,25 +83,6 @@ export const checkout = async (req, res, next) => {
     const result = await checkinService.processCheckout(checkInId, documentNumber);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
-    next(error);
-  }
-};
-export const listCabins = async (req, res, next) => {
-  try {
-    const cabins = await checkinService.getCabins();
-    res.status(200).json({ success: true, data: cabins });
-  } catch (error) {
-    next(error);
-  }
-};
-export const luggage = async (req, res, next) => {
-  try {
-    const { luggageSchema } = await import('../validators/checkin.validator.js');
-    const validated = luggageSchema.parse({ body: req.body });
-    const result = await checkinService.registerLuggage(validated.body);
-    res.status(200).json({ success: true, data: result });
-  } catch (error) {
-    if (error.name === 'ZodError') return res.status(400).json({ success: false, error: { code: 'ERR_VALIDATION', message: error.errors[0].message } });
     next(error);
   }
 };

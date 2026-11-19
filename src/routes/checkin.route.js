@@ -1,15 +1,14 @@
 import { Router } from 'express';
-// Añade 'luggage' al import
-import { initiate, pay, cabin, qr, checkout, listCabins, luggage } from '../controllers/checkin.controller.js'; 
+import { initiate, confirmReservation, cabin, luggage, checkout, listCabins, qr } from '../controllers/checkin.controller.js';
 
 const router = Router();
 
 router.post('/initiate', initiate);
-router.post('/pay', pay);
+router.post('/confirm-reservation', confirmReservation);
 router.post('/cabin', cabin);
+router.post('/luggage', luggage);
 router.post('/checkout', checkout);
-router.get('/:id/qr', qr);
 router.get('/cabins', listCabins);
-router.post('/luggage', luggage); // <-- Nueva ruta
+router.get('/:id/qr', qr);
 
 export default router;
