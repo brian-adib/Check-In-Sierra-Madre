@@ -2,14 +2,24 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Sierra Madre Check-In API",
-    "version": "1.0.0",
-    "description": "Microservicio de Check-in para el crucero Sierra Madre Resort & Casino"
+    "version": "1.1.0",
+    "description": "Microservicio de Check-in para el crucero Sierra Madre Resort & Casino. Incluye integración con Mocks para Banco, Cabinas y Reservaciones."
   },
-  "servers": [{ "url": "http://localhost:3000" }],
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor Local"
+    },
+    {
+      "url": "https://sierra-madre-checkin.onrender.com",
+      "description": "Servidor de Producción (Render)"
+    }
+  ],
   "paths": {
     "/api/check-in/initiate": {
       "post": {
-        "summary": "Iniciar Check-in",
+        "summary": "Iniciar Check-in (ST01)",
+        "description": "Valida que la reservación exista y registra a los pasajeros.",
         "requestBody": {
           "required": true,
           "content": {
@@ -17,94 +27,128 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "groupCode": { "type": "string" },
-                  "passengers": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "documentType": { "type": "string" },
-                        "documentNumber": { "type": "string" },
-                        "firstName": { "type": "string" },
-                        "lastName": { "type": "string" },
-                        "birthDate": { "type": "string" },
-                        "isVip": { "type": "boolean" }
-                      }
-                    }
-                  }
+                  "groupCode": { "type": "string", "example": "FAM-001" }
                 }
               }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": { "201": { "description": "Check-in iniciado exitosamente" } }
       }
     },
-    "/api/check-in/pay": {
+    "/api/check-in/confirm-reservation": {
       "post": {
-        "summary": "Procesar pago de reserva",
+        "summary": "Confirmar con Reservaciones (ST05)",
+        "description": "Envía los datos validados al microservicio de Reservaciones para su Visto Bueno.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "checkInId": { "type": "string" },
-                  "amount": { "type": "number" },
-                  "documentNumber": { "type": "string" }
+                  "checkInId": { "type": "string", "format": "uuid" }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "Payment processed" } }
+        "responses": {
+          "200": { "description": "Reservación confirmada" },
+          "400": { "description": "Rechazado por Reservaciones" }
+        }
       }
     },
     "/api/check-in/cabin": {
       "post": {
-        "summary": "Asignar cabina",
+        "summary": "Asignar Cabina (ST06)",
+        "description": "Consulta disponibilidad al Mock de Cabinas y asigna la cabina.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "checkInId": { "type": "string" },
-                  "cabinId": { "type": "string" }
+                  "checkInId": { "type": "string", "format": "uuid" },
+                  "cabinId": { "type": "string", "format": "uuid" }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "Cabin assigned" } }
+        "responses": { "200": { "description": "Cabina asignada" } }
+      }
+    },
+    "/api/check-in/luggage": {
+      "post": {
+        "summary": "Registrar Equipaje (ST07)",
+        "description": "Valida el límite de equipaje y lo envía a Embarque.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checkInId": { "type": "string", "format": "uuid" },
+                  "bagCount": { "type": "number", "example": 2 },
+                  "totalWeightKg": { "type": "number", "example": 25 },
+                  "isVip": { "type": "boolean", "example": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Equipaje registrado" },
+          "422": { "description": "ERR_LUGGAGE_LIMIT (Excede límite)" }
+        }
       }
     },
     "/api/check-in/checkout": {
       "post": {
-        "summary": "Procesar Check-out y cobros extra",
+        "summary": "Procesar Check-out (ST08-ST12)",
+        "description": "Consulta daños, genera cargos y procesa el cobro final.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "checkInId": { "type": "string" },
-                  "documentNumber": { "type": "string" }
+                  "checkInId": { "type": "string", "format": "uuid" },
+                  "documentNumber": { "type": "string", "example": "11111111" }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "Check-out completed" } }
+        "responses": { "200": { "description": "Check-out y cobro exitoso" } }
       }
     },
     "/api/check-in/{id}/qr": {
       "get": {
-        "summary": "Obtener pase QR",
+        "summary": "Obtener Pase QR (SU02)",
+        "description": "Genera el código QR en Base64 para el pase de abordar.",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": { "200": { "description": "QR Base64 string" } }
+        "responses": { "200": { "description": "QR generado en Base64" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "ERR_AGE_REQUIREMENT" },
+              "message": { "type": "string", "example": "Minors require an adult." }
+            }
+          }
+        }
       }
     }
   }
